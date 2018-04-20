@@ -3,7 +3,7 @@
 //  Example
 //
 //  Created by zhanglei on 19/04/2016.
-//  Copyright © 2018 Loftor. All rights reserved.
+//  Copyright © 2016 Loftor. All rights reserved.
 //
 
 #import "LCollectionViewFlowLayout.h"
@@ -13,9 +13,12 @@
 @implementation LCollectionViewFlowLayout{
     CGFloat _l_sum;
     NSUInteger _l_sectionLineAlignType;
+    NSUInteger _l_sectionItemAlignType;
     CGFloat _l_sectionMinimumInteritemSpacing;
     CGFloat _l_sectionMinimumLineSpacing;
     UIEdgeInsets _l_sectionInset;
+    CGFloat _l_min;
+    CGFloat _l_max;
 }
 
 - (void)prepareLayout{
@@ -61,6 +64,7 @@
         }
         
         if (bNextLine) {
+            previousAttr = nil;
             if ([[self l_getDelegate] respondsToSelector:@selector(collectionView:layout:minimumInteritemSpacingForSectionAtIndex:)]) {
                  _l_sectionMinimumInteritemSpacing = [[self l_getDelegate] collectionView:self.collectionView layout:self minimumInteritemSpacingForSectionAtIndex:previousAttr.indexPath.section];
             }
@@ -79,9 +83,19 @@
             else{
                 _l_sectionLineAlignType = _lineAlignType;
             }
-            if (_l_sectionLineAlignType != LCollectionViewLineAlignJustify) {
+            
+            if ([[self l_getDelegate] respondsToSelector:@selector(collectionView:layout:itemAlignTypeForSectionAtIndex:)]) {
+                _l_sectionItemAlignType = [[self l_getDelegate] collectionView:self.collectionView layout:self itemAlignTypeForSectionAtIndex:previousAttr.indexPath.section];
+            }
+            else{
+                _l_sectionItemAlignType = _itemAlignType;
+            }
+            
+            if (_l_sectionLineAlignType != LCollectionViewLineAlignJustify || _l_sectionItemAlignType != LCollectionViewItemAlignCenter) {
                 [self l_setCellFrame:layoutAttributesTemp];
                 _l_sum = 0;
+                _l_min = 0;
+                _l_max = 0;
             }
 
             
@@ -96,6 +110,8 @@
                 break;
             case UICollectionViewScrollDirectionVertical:
                 _l_sum += currentAttr.frame.size.width;
+                _l_min = previousAttr?MIN(currentAttr.frame.origin.y, previousAttr.frame.origin.y):currentAttr.frame.origin.y;
+                _l_max = previousAttr?MAX(currentAttr.frame.origin.y+currentAttr.frame.size.height, previousAttr.frame.origin.y+previousAttr.frame.size.height):currentAttr.frame.origin.y+currentAttr.frame.size.height;
                 break;
             default:
                 break;
@@ -149,6 +165,23 @@
         }
             break;
             
+    }
+    
+    switch (_l_sectionItemAlignType) {
+        case LCollectionViewItemAlignLeading:
+            for (UICollectionViewLayoutAttributes * attributes in layoutAttributes) {
+                CGRect nowFrame = attributes.frame;
+                nowFrame.origin.y = _l_min;
+                attributes.frame = nowFrame;
+            }
+            break;
+        case LCollectionViewItemAlignTrailing:
+            for (UICollectionViewLayoutAttributes * attributes in layoutAttributes) {
+                CGRect nowFrame = attributes.frame;
+                nowFrame.origin.y = _l_max-nowFrame.size.height;
+                attributes.frame = nowFrame;
+            }
+            break;
     }
 }
 
